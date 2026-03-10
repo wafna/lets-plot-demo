@@ -1,0 +1,23 @@
+# https://taskfile.dev
+
+version: '3'
+silent: true
+tasks:
+  test:
+    cmds:
+      - ./gradlew --warning-mode all test
+  build:
+    cmds:
+      - ./gradlew --warning-mode all build
+  clean:
+    cmds:
+      - ./gradlew --warning-mode all clean
+  deps:
+    cmds:
+      - ./gradlew --no-parallel dependencyUpdates | tee ../.local/dependency-update.txt
+  yarn:
+    cmds:
+      - ./gradlew kotlinUpgradeYarnLock
+  tasks:
+    cmds:
+      - ./gradlew tasks
