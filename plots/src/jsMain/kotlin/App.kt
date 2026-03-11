@@ -18,8 +18,8 @@ import web.dom.document
 val data = mapOf(
     "CIA" to 7.0,
     "FBI" to 14.0,
-    "DIA" to 21.0,
     "NSA" to 12.0,
+    "DIA" to 21.0,
     "NGA" to 5.0,
     "NRO" to 18.0,
 )

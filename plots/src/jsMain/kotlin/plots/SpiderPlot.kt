@@ -3,20 +3,30 @@ package plots
 import kotlin.math.PI
 import kotlin.math.ceil
 import kotlin.math.cos
+import kotlin.math.floor
 import kotlin.math.log
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.browser.document
+import org.jetbrains.letsPlot.coord.coordFixed
 import org.jetbrains.letsPlot.frontend.JsFrontendUtil
 import org.jetbrains.letsPlot.geom.geomPath
+import org.jetbrains.letsPlot.geom.geomPoint
+import org.jetbrains.letsPlot.geom.geomText
 import org.jetbrains.letsPlot.ggplot
+import org.jetbrains.letsPlot.ggsize
+import org.jetbrains.letsPlot.scale.scaleColorManual
 import react.FC
 import react.dom.html.ReactHTML.div
 import react.useEffect
 import web.dom.ElementId
 
+data class Angle(val radians: Double) {
+    val sin = sin(radians)
+    val cos = cos(radians)
+}
 /**
  * The trick is to transpose to polar manually rather than relying on coordPolar().
  * This might explain why line plots look so crazy in polar.
@@ -28,39 +38,82 @@ val SpiderPlot = FC<PlotProps> { props ->
     useEffect {
         val abscissa = props.abscissa
         val ordinate = props.ordinate
-        val size = abscissa.second.size.also { require(it == ordinate.second.size) { "ueonteuhontehuo" } }
-        // One extra to close the loop.
-        val angles = (2 * PI / size).let { dt ->
-            (0 until size).map { it * dt }
-        }
-        val anglesClosed = angles + angles.first()
+        val size = abscissa.second.size.also { require(it == ordinate.second.size) { "Mismatched data sizes." } }
+        // One extra to close the loops.
         val abscissaClosed = abscissa.first to abscissa.second + abscissa.second.first()
         val ordinateClosed = ordinate.first to ordinate.second + ordinate.second.first()
-        val polar = ordinateClosed.second.zip(anglesClosed).map { (r, theta) ->
-            val x = r * cos(theta)
-            val y = r * sin(theta)
-        }
         val max = ordinate.second.max()
-        // Draw the circles as a data set.
-        val circles = ordinate.second.max().let { max ->
-            val top = 10.0.pow(ceil(log(max, 10.0)))
+        // We extend the graph to a nice round number.
+        val top = floor(log(max, 10.0)).let { mag ->
+            val u = 10.0.pow(mag)
+            mag + max
+        }
+        println("MAX = $max, TOP = $top")
+        // Radius markers.
+        val circles = Unit.let {
             val n = 4
             val dr = top / 4
-            (1 .. n).map { it * dr }
+            (1..n).map { it * dr }
         }.let { radii ->
             val dt = 2 * PI / CIRCLE_POINTS
             val xs = mutableListOf<Double>()
             val ys = mutableListOf<Double>()
             val rs = mutableListOf<Double>()
             radii.forEach { radius ->
-                val thetas = (0 until CIRCLE_POINTS).map { i -> i * dt }
+                val thetas = (0 until CIRCLE_POINTS).map { i -> i * dt }.run { this + first() }
                 xs.addAll(thetas.map { radius * cos(it) })
                 ys.addAll(thetas.map { radius * sin(it) })
-                repeat(CIRCLE_POINTS) { rs.add(radius) }
+                repeat(CIRCLE_POINTS + 1) { rs.add(radius) }
             }
-            mapOf("x" to xs, "y" to ys, "radius" to rs)
+            mapOf("x" to xs.toList(), "y" to ys.toList(), "radius" to rs.toList())
         }
-//        val radials = angles.map
+        // Radials to data points.
+        val angles = (2 * PI / size).let { dt ->
+            (0 until size).map { Angle(it * dt) }
+        }
+        val radials = Unit.let {
+            val xs = mutableListOf<Double>()
+            val ys = mutableListOf<Double>()
+            val ts = mutableListOf<Double>()
+            angles.forEach { angle ->
+                xs.addAll(listOf(0.0, top * angle.cos))
+                ys.addAll(listOf(0.0, top * angle.sin))
+                // Yes, it must be added twice.
+                repeat(2) { ts.add(angle.radians) }
+            }
+            mapOf("x" to xs.toList(), "y" to ys.toList(), "angle" to ts.toList())
+        }
+        // Labels
+        val labels = angles.zip(abscissa.second).run {
+            val xs = mutableListOf<Double>()
+            val ys = mutableListOf<Double>()
+            val ts = mutableListOf<String>()
+            forEach { (angle, label) ->
+                val x = max * angle.cos
+                xs.add(x)
+                val y = max * angle.sin
+                ys.add(y)
+                ts.add(label)
+            }
+            mapOf("x" to xs.toList(), "y" to ys.toList(), "label" to ts.toList())
+        }.also { it.forEach(::println) }
+        // Data
+        val anglesClosed = angles + angles.first()
+        val data = ordinateClosed.second.zip(anglesClosed).let {
+            val xs = mutableListOf<Double>()
+            val ys = mutableListOf<Double>()
+            val thetas = mutableListOf<Double>()
+            val radii = mutableListOf<Double>()
+            val groups = mutableListOf<String>()
+            it.forEach { (r, theta) ->
+                xs.add(r * theta.cos)
+                ys.add(r * theta.sin)
+                thetas.add(theta.radians)
+                radii.add(r)
+                groups.add("agency")
+            }
+            mapOf("x" to xs.toList(), "y" to ys.toList(), "radius" to radii, "angle" to thetas, "group" to groups)
+        }
         val plot = ggplot() +
                 geomPath(
                     data = circles,
@@ -71,7 +124,52 @@ val SpiderPlot = FC<PlotProps> { props ->
                     x = "x"
                     y = "y"
                     group = "radius"
-                }
+                } +
+                geomPath(
+                    data = radials,
+                    color = "#CCCCCC",
+                    size = 0.5,
+                    alpha = 0.6
+                ) {
+                    x = "x"
+                    y = "y"
+                    group = "angle"
+                } +
+                geomPath(
+                    data = data,
+                    size = 2
+                ) {
+                    x = "x"
+                    y = "y"
+                    group = "group"
+                } +
+                geomPoint(
+                    data = data,
+                    size = 5
+                ) {
+                    x = "x"
+                    y = "y"
+                    group = "group"
+                } +
+                geomText(
+                    data = labels,
+                    size = 14,
+                    color = "#DDDDDD",
+                ) {
+                    x = "x"
+                    y = "y"
+                    group = "label"
+                } +
+                scaleColorManual(values = listOf("#306998", "#FFD43B")) +
+                // This labs line jacks the aspect ratio, for some reason.
+//                labs(title = "Spider Web Plot", color = "Location")
+//                themeVoid() +
+//                theme(
+//                    plotTitle = elementText(size = 24, hjust = 0.5),
+//                    legendTitle = elementText(size = 18),
+//                    legendText = elementText(size = 16),
+//                ) +
+                coordFixed() + ggsize(1600, 900)
 //        val data = mapOf(abscissaClosed, ordinateClosed)
 //        val plot = letsPlot(data) +
 //                theme(
