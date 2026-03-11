@@ -1,7 +1,6 @@
 package plots
 
 import kotlin.math.PI
-import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.log
@@ -43,9 +42,6 @@ val SpiderPlot = FC<PlotProps> { props ->
         val abscissa = props.abscissa
         val ordinate = props.ordinate
         val size = abscissa.second.size.also { require(it == ordinate.second.size) { "Mismatched data sizes." } }
-        // One extra to close the loops.
-        val abscissaClosed = abscissa.first to abscissa.second + abscissa.second.first()
-        val ordinateClosed = ordinate.first to ordinate.second + ordinate.second.first()
         val max = ordinate.second.max()
         // Extend the graph to the next unit of (base 10) magnitude of the maximum value.
         val top = floor(log(max, 10.0)).let { mag ->
@@ -103,8 +99,10 @@ val SpiderPlot = FC<PlotProps> { props ->
             mapOf("x" to xs.toList(), "y" to ys.toList(), "label" to ts.toList())
         }.also { it.forEach(::println) }
         // Data
+        // One extra to close the loops.
+        val ordinateClosed = ordinate.second + ordinate.second.first()
         val anglesClosed = angles + angles.first()
-        val data = ordinateClosed.second.zip(anglesClosed).let {
+        val data = ordinateClosed.zip(anglesClosed).let {
             val xs = mutableListOf<Double>()
             val ys = mutableListOf<Double>()
             val thetas = mutableListOf<Double>()
@@ -120,50 +118,20 @@ val SpiderPlot = FC<PlotProps> { props ->
             mapOf("x" to xs.toList(), "y" to ys.toList(), "radius" to radii, "angle" to thetas, "group" to groups)
         }
         val plot = ggplot() +
-                geomPath(
-                    data = circles,
-                    color = "#CCCCCC",
-                    size = 0.5,
-                    alpha = 0.6
-                ) {
-                    x = "x"
-                    y = "y"
-                    group = "radius"
+                geomPath(data = circles, color = "#CCCCCC", size = 0.5, alpha = 1.0) {
+                    x = "x"; y = "y"; group = "radius"
                 } +
-                geomPath(
-                    data = radials,
-                    color = "#CCCCCC",
-                    size = 0.5,
-                    alpha = 0.6
-                ) {
-                    x = "x"
-                    y = "y"
-                    group = "angle"
+                geomPath(data = radials, color = "#CCCCCC", size = 0.5, alpha = 1.0) {
+                    x = "x"; y = "y"; group = "angle"
                 } +
-                geomPath(
-                    data = data,
-                    size = 2
-                ) {
-                    x = "x"
-                    y = "y"
-                    group = "group"
+                geomPath(data = data, size = 2) {
+                    x = "x"; y = "y"; group = "group"
                 } +
-                geomPoint(
-                    data = data,
-                    size = 5
-                ) {
-                    x = "x"
-                    y = "y"
-                    group = "group"
+                geomPoint(data = data, size = 5) {
+                    x = "x"; y = "y"; group = "group"
                 } +
-                geomText(
-                    data = labels,
-                    size = 14,
-                    color = "#DDDDDD",
-                ) {
-                    x = "x"
-                    y = "y"
-                    group = "label"
+                geomText(data = labels, size = 14, color = "#DDDDDD") {
+                    x = "x"; y = "y"; group = "label"
                 } +
                 scaleColorManual(values = listOf("#306998", "#FFD43B")) +
                 // This labs line jacks the aspect ratio, for some reason.
@@ -174,8 +142,7 @@ val SpiderPlot = FC<PlotProps> { props ->
                     legendTitle = elementText(size = 18),
                     legendText = elementText(size = 16),
                 ) +
-                coordFixed() +
-                ggsize(1600, 900)
+                coordFixed() //+ ggsize(1600, 900)
         val plotDiv = JsFrontendUtil.createPlotDiv(plot)
         val contentDiv = document.getElementById(contentId)?.apply {
             innerHTML = ""
