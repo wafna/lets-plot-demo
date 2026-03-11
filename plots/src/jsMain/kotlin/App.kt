@@ -44,30 +44,30 @@ val App = FC<Props> {
                 }
             }
         }
-//        div {
-//            className = ClassName("row")
-//            div {
-//                className = ClassName("col-lg-4")
-//                WedgePlot {
-//                    abscissa = "Agency" to data.map { it.key }
-//                    ordinate = "Score" to data.map { it.value }
-//                }
-//            }
-//            div {
-//                className = ClassName("col-lg-4")
-//                BarChart {
-//                    abscissa = "Agency" to data.map { it.key }
-//                    ordinate = "Score" to data.map { it.value }
-//                }
-//            }
-//            div {
-//                className = ClassName("col-lg-4")
-//                LinePlot {
-//                    abscissa = "Agency" to data.map { it.key }
-//                    ordinate = "Score" to data.map { it.value }
-//                }
-//            }
-//        }
+        div {
+            className = ClassName("row")
+            div {
+                className = ClassName("col-lg-4")
+                WedgePlot {
+                    abscissa = "Agency" to data.map { it.key }
+                    ordinate = "Score" to data.map { it.value }
+                }
+            }
+            div {
+                className = ClassName("col-lg-4")
+                BarChart {
+                    abscissa = "Agency" to data.map { it.key }
+                    ordinate = "Score" to data.map { it.value }
+                }
+            }
+            div {
+                className = ClassName("col-lg-4")
+                LinePlot {
+                    abscissa = "Agency" to data.map { it.key }
+                    ordinate = "Score" to data.map { it.value }
+                }
+            }
+        }
     }
 }
 

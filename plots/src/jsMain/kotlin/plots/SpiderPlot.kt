@@ -10,13 +10,16 @@ import kotlin.math.sin
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.browser.document
+import org.jetbrains.letsPlot.Stat
 import org.jetbrains.letsPlot.coord.coordFixed
 import org.jetbrains.letsPlot.frontend.JsFrontendUtil
+import org.jetbrains.letsPlot.geom.geomLabel
 import org.jetbrains.letsPlot.geom.geomPath
 import org.jetbrains.letsPlot.geom.geomPoint
 import org.jetbrains.letsPlot.geom.geomText
 import org.jetbrains.letsPlot.ggplot
 import org.jetbrains.letsPlot.ggsize
+import org.jetbrains.letsPlot.label.labs
 import org.jetbrains.letsPlot.scale.scaleColorManual
 import org.jetbrains.letsPlot.themes.elementText
 import org.jetbrains.letsPlot.themes.theme
@@ -46,10 +49,8 @@ val SpiderPlot = FC<PlotProps> { props ->
         // Extend the graph to the next unit of (base 10) magnitude of the maximum value.
         val top = floor(log(max, 10.0)).let { mag ->
             val u = 10.0.pow(mag)
-            println("max: $max, mag: $mag, u: $u")
             ((max + u) / u).roundToLong() * u
         }
-        println("MAX = $max, TOP = $top")
         // Radius markers.
         val circles = Unit.let {
             val n = 4
@@ -86,18 +87,19 @@ val SpiderPlot = FC<PlotProps> { props ->
         }
         // Labels
         val labels = angles.zip(abscissa.second).run {
+            val r = 1 // max // top
             val xs = mutableListOf<Double>()
             val ys = mutableListOf<Double>()
             val ts = mutableListOf<String>()
             forEach { (angle, label) ->
-                val x = max * angle.cos
+                val x = r * angle.cos
                 xs.add(x)
-                val y = max * angle.sin
+                val y = r * angle.sin
                 ys.add(y)
                 ts.add(label)
             }
             mapOf("x" to xs.toList(), "y" to ys.toList(), "label" to ts.toList())
-        }.also { it.forEach(::println) }
+        }
         // Data
         // One extra to close the loops.
         val ordinateClosed = ordinate.second + ordinate.second.first()
@@ -117,7 +119,7 @@ val SpiderPlot = FC<PlotProps> { props ->
             }
             mapOf("x" to xs.toList(), "y" to ys.toList(), "radius" to radii, "angle" to thetas, "group" to groups)
         }
-        val plot = ggplot() +
+        val plot = ggplot() + coordFixed() +
                 geomPath(data = circles, color = "#CCCCCC", size = 0.5, alpha = 1.0) {
                     x = "x"; y = "y"; group = "radius"
                 } +
@@ -129,20 +131,19 @@ val SpiderPlot = FC<PlotProps> { props ->
                 } +
                 geomPoint(data = data, size = 5) {
                     x = "x"; y = "y"; group = "group"
-                } +
-                geomText(data = labels, size = 14, color = "#DDDDDD") {
+                }+
+                geomText(stat = Stat.identity, data = labels, size = 20, color = "#777777") {
                     x = "x"; y = "y"; group = "label"
                 } +
                 scaleColorManual(values = listOf("#306998", "#FFD43B")) +
                 // This labs line jacks the aspect ratio, for some reason.
-//                labs(title = "Spider Web Plot", color = "Location")
+                // labs(title = "Spider Web Plot")
                 themeVoid() +
                 theme(
                     plotTitle = elementText(size = 24, hjust = 0.5),
                     legendTitle = elementText(size = 18),
                     legendText = elementText(size = 16),
-                ) +
-                coordFixed() //+ ggsize(1600, 900)
+                ) //+ ggsize(1600, 900)
         val plotDiv = JsFrontendUtil.createPlotDiv(plot)
         val contentDiv = document.getElementById(contentId)?.apply {
             innerHTML = ""
