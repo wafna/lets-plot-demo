@@ -6,6 +6,7 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.log
 import kotlin.math.pow
+import kotlin.math.roundToLong
 import kotlin.math.sin
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -18,6 +19,9 @@ import org.jetbrains.letsPlot.geom.geomText
 import org.jetbrains.letsPlot.ggplot
 import org.jetbrains.letsPlot.ggsize
 import org.jetbrains.letsPlot.scale.scaleColorManual
+import org.jetbrains.letsPlot.themes.elementText
+import org.jetbrains.letsPlot.themes.theme
+import org.jetbrains.letsPlot.themes.themeVoid
 import react.FC
 import react.dom.html.ReactHTML.div
 import react.useEffect
@@ -43,10 +47,11 @@ val SpiderPlot = FC<PlotProps> { props ->
         val abscissaClosed = abscissa.first to abscissa.second + abscissa.second.first()
         val ordinateClosed = ordinate.first to ordinate.second + ordinate.second.first()
         val max = ordinate.second.max()
-        // We extend the graph to a nice round number.
+        // Extend the graph to the next unit of (base 10) magnitude of the maximum value.
         val top = floor(log(max, 10.0)).let { mag ->
             val u = 10.0.pow(mag)
-            mag + max
+            println("max: $max, mag: $mag, u: $u")
+            ((max + u) / u).roundToLong() * u
         }
         println("MAX = $max, TOP = $top")
         // Radius markers.
@@ -163,32 +168,14 @@ val SpiderPlot = FC<PlotProps> { props ->
                 scaleColorManual(values = listOf("#306998", "#FFD43B")) +
                 // This labs line jacks the aspect ratio, for some reason.
 //                labs(title = "Spider Web Plot", color = "Location")
-//                themeVoid() +
-//                theme(
-//                    plotTitle = elementText(size = 24, hjust = 0.5),
-//                    legendTitle = elementText(size = 18),
-//                    legendText = elementText(size = 16),
-//                ) +
-                coordFixed() + ggsize(1600, 900)
-//        val data = mapOf(abscissaClosed, ordinateClosed)
-//        val plot = letsPlot(data) +
-//                theme(
-//                    panelGridMinorY = elementLine(color = Color.BLACK)
-//                ) +
-//                coordPolar() +
-//                geomBar(
-//                    stat = Stat.identity,
-//                    color = "dark-green",
-//                    fill = "green",
-//                    alpha = .3,
-//                    size = 1.0
-//                ) {
-//                    x = abscissa.first
-//                    y = ordinate.first
-//                }.let {
-//                    if (null == props.scaleY) it
-//                    else it + (props.scaleY as Feature)
-//                }
+                themeVoid() +
+                theme(
+                    plotTitle = elementText(size = 24, hjust = 0.5),
+                    legendTitle = elementText(size = 18),
+                    legendText = elementText(size = 16),
+                ) +
+                coordFixed() +
+                ggsize(1600, 900)
         val plotDiv = JsFrontendUtil.createPlotDiv(plot)
         val contentDiv = document.getElementById(contentId)?.apply {
             innerHTML = ""
